@@ -1364,7 +1364,7 @@ func TestConvertCodexResponseToClaude_StreamPreservesCacheWriteUsage(t *testing.
 			wantCacheWriteTokens: 50,
 		},
 		{
-			name:                 "zero cache_write_tokens does not emit cache_creation_input_tokens",
+			name:                 "zero cache_write_tokens emits explicit zero cache_creation_input_tokens",
 			terminalUsageJSON:    `{"input_tokens":1000,"output_tokens":200,"input_tokens_details":{"cached_tokens":800,"cache_write_tokens":0}}`,
 			wantInputTokens:      200,
 			wantOutputTokens:     200,
@@ -1421,11 +1421,10 @@ func TestConvertCodexResponseToClaude_StreamPreservesCacheWriteUsage(t *testing.
 			if got := usage.Get("cache_read_input_tokens").Int(); got != tt.wantCacheReadTokens {
 				t.Fatalf("cache_read_input_tokens = %d, want %d", got, tt.wantCacheReadTokens)
 			}
-			if tt.wantCacheWriteTokens == 0 {
-				if usage.Get("cache_creation_input_tokens").Exists() {
-					t.Fatalf("cache_creation_input_tokens should not be emitted when zero; got %v", usage.Get("cache_creation_input_tokens").Raw)
-				}
-			} else if got := usage.Get("cache_creation_input_tokens").Int(); got != tt.wantCacheWriteTokens {
+			if !usage.Get("cache_creation_input_tokens").Exists() {
+				t.Fatalf("cache_creation_input_tokens missing; usage=%s", usage.Raw)
+			}
+			if got := usage.Get("cache_creation_input_tokens").Int(); got != tt.wantCacheWriteTokens {
 				t.Fatalf("cache_creation_input_tokens = %d, want %d", got, tt.wantCacheWriteTokens)
 			}
 		})
@@ -1493,7 +1492,7 @@ func TestConvertCodexResponseToClaudeNonStream_PreservesCacheWriteUsage(t *testi
 			wantCacheWriteTokens: 50,
 		},
 		{
-			name: "zero cache_write_tokens does not emit cache_creation_input_tokens",
+			name: "zero cache_write_tokens emits explicit zero cache_creation_input_tokens",
 			responseJSON: `{
 				"type":"response.completed",
 				"response":{
@@ -1562,11 +1561,10 @@ func TestConvertCodexResponseToClaudeNonStream_PreservesCacheWriteUsage(t *testi
 			if got := usage.Get("cache_read_input_tokens").Int(); got != tt.wantCacheReadTokens {
 				t.Fatalf("cache_read_input_tokens = %d, want %d", got, tt.wantCacheReadTokens)
 			}
-			if tt.wantCacheWriteTokens == 0 {
-				if usage.Get("cache_creation_input_tokens").Exists() {
-					t.Fatalf("cache_creation_input_tokens should not be emitted when zero; got %v", usage.Get("cache_creation_input_tokens").Raw)
-				}
-			} else if got := usage.Get("cache_creation_input_tokens").Int(); got != tt.wantCacheWriteTokens {
+			if !usage.Get("cache_creation_input_tokens").Exists() {
+				t.Fatalf("cache_creation_input_tokens missing; usage=%s", usage.Raw)
+			}
+			if got := usage.Get("cache_creation_input_tokens").Int(); got != tt.wantCacheWriteTokens {
 				t.Fatalf("cache_creation_input_tokens = %d, want %d", got, tt.wantCacheWriteTokens)
 			}
 		})

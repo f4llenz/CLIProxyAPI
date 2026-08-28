@@ -164,9 +164,7 @@ func ConvertCodexResponseToClaude(_ context.Context, _ string, originalRequestRa
 		if cachedTokens > 0 {
 			template, _ = sjson.SetBytes(template, "usage.cache_read_input_tokens", cachedTokens)
 		}
-		if cacheWriteTokens > 0 {
-			template, _ = sjson.SetBytes(template, "usage.cache_creation_input_tokens", cacheWriteTokens)
-		}
+		template, _ = sjson.SetBytes(template, "usage.cache_creation_input_tokens", max(cacheWriteTokens, 0))
 		template = setClaudeReasoningUsage(template, responseData.Get("usage"))
 
 		output = translatorcommon.AppendSSEEventBytes(output, "message_delta", template, 2)
@@ -372,9 +370,7 @@ func ConvertCodexResponseToClaudeNonStream(_ context.Context, _ string, original
 	if cachedTokens > 0 {
 		out, _ = sjson.SetBytes(out, "usage.cache_read_input_tokens", cachedTokens)
 	}
-	if cacheWriteTokens > 0 {
-		out, _ = sjson.SetBytes(out, "usage.cache_creation_input_tokens", cacheWriteTokens)
-	}
+	out, _ = sjson.SetBytes(out, "usage.cache_creation_input_tokens", max(cacheWriteTokens, 0))
 	out = setClaudeReasoningUsage(out, responseData.Get("usage"))
 
 	hasToolCall := false
