@@ -44,7 +44,7 @@ func TestConvertClaudeRequestToCodex_SystemMessageScenarios(t *testing.T) {
 			wantTexts:        []string{"Be helpful"},
 		},
 		{
-			name: "Message system role does not become developer",
+			name: "Message system role becomes developer (codex-path deviation)",
 			inputJSON: `{
 				"model": "claude-3-opus",
 				"messages": [
@@ -52,7 +52,8 @@ func TestConvertClaudeRequestToCodex_SystemMessageScenarios(t *testing.T) {
 					{"role": "user", "content": "hello"}
 				]
 			}`,
-			wantHasDeveloper: false,
+			wantHasDeveloper: true,
+			wantTexts:        []string{"<system-reminder>\nFollow the project instructions\n</system-reminder>"},
 		},
 		{
 			name: "Array system field with filtered billing header",
@@ -102,7 +103,7 @@ func TestConvertClaudeRequestToCodex_SystemMessageScenarios(t *testing.T) {
 	}
 }
 
-func TestConvertClaudeRequestToCodex_MessageSystemRoleWrapsAsUserReminder(t *testing.T) {
+func TestConvertClaudeRequestToCodex_MessageSystemRoleWrapsAsDeveloperReminder(t *testing.T) {
 	inputJSON := `{
 		"model": "claude-3-opus",
 		"system": [{"type": "text", "text": "Top-level rules"}],
@@ -123,14 +124,14 @@ func TestConvertClaudeRequestToCodex_MessageSystemRoleWrapsAsUserReminder(t *tes
 	if got := inputs[0].Get("role").String(); got != "developer" {
 		t.Fatalf("top-level system role = %q, want developer", got)
 	}
-	if got := inputs[2].Get("role").String(); got != "user" {
-		t.Fatalf("message-level system role = %q, want user", got)
+	if got := inputs[2].Get("role").String(); got != "developer" {
+		t.Fatalf("message-level system role = %q, want developer", got)
 	}
 	if got := inputs[2].Get("content.0.text").String(); got != "<system-reminder>\nFollow the project instructions\n</system-reminder>" {
 		t.Fatalf("unexpected first reminder text: %q", got)
 	}
-	if got := inputs[4].Get("role").String(); got != "user" {
-		t.Fatalf("array message-level system role = %q, want user", got)
+	if got := inputs[4].Get("role").String(); got != "developer" {
+		t.Fatalf("array message-level system role = %q, want developer", got)
 	}
 	if got := inputs[4].Get("content.0.text").String(); got != "<system-reminder>\nUse the current repo\n</system-reminder>" {
 		t.Fatalf("unexpected second reminder text: %q", got)
