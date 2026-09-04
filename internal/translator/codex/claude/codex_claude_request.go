@@ -106,8 +106,18 @@ func convertClaudeRequestToCodex(modelName string, inputRawJSON []byte, _ bool, 
 			messageResult := messageResults[i]
 			messageRole := messageResult.Get("role").String()
 			if messageRole == "system" {
+				// Codex-path deviation from the shared helper's default: emit the reminder as
+				// `developer`, not `user`. The <system-reminder> wrapper is a Claude-trained
+				// convention that carries no weight on GPT-5.6, so a `user` item makes standing
+				// harness policy read as a fresh end-user request on every turn. Measured
+				// 2026-09-03, 16/16 with no crossover: asked to attribute the same directive,
+				// the model answers USER under `user`+wrapper and SYSTEM under `developer`.
+				// Mid-array `{"type":"message","role":"developer"}` is accepted by the Codex
+				// upstream (probed against /v1/responses). Scoped to this caller on purpose —
+				// ClaudeMessageSystemReminderText is shared with the openai, gemini and
+				// antigravity translators, where mid-array developer is unverified.
 				if reminderText, ok := translatorcommon.ClaudeMessageSystemReminderText(messageResult.Get("content")); ok {
-					message := []byte(`{"type":"message","role":"user","content":[{"type":"input_text","text":""}]}`)
+					message := []byte(`{"type":"message","role":"developer","content":[{"type":"input_text","text":""}]}`)
 					message, _ = sjson.SetBytes(message, "content.0.text", reminderText)
 					if len(pendingToolUseIDs) > 0 {
 						pendingSystemReminders = append(pendingSystemReminders, message)
