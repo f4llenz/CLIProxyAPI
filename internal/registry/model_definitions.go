@@ -116,7 +116,7 @@ func GetXAIModels() []*ModelInfo {
 // not depend on remote models.json updates. Built-ins replace any matching IDs
 // already present in the provided slice.
 func WithCodexBuiltins(models []*ModelInfo) []*ModelInfo {
-	return upsertModelInfos(models, codexBuiltinImage15ModelInfo(), codexBuiltinImageModelInfo())
+	return upsertModelInfos(withCodexGPT6Fallbacks(models), codexBuiltinImage15ModelInfo(), codexBuiltinImageModelInfo())
 }
 
 // WithXAIBuiltins injects hard-coded xAI image/video model definitions that should
@@ -345,7 +345,7 @@ func LookupStaticModelInfo(modelID string) *ModelInfo {
 		data.Gemini,
 		data.Vertex,
 		data.AIStudio,
-		data.CodexPro,
+		GetCodexProModels(),
 		data.Kimi,
 		data.Antigravity,
 		data.XAI,
