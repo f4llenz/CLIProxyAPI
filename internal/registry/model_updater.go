@@ -28,6 +28,13 @@ var modelsURLs = []string{
 //go:embed models/models.json
 var embeddedModelsJSON []byte
 
+// pinnedModelsJSON holds definitions that stay registered when the remote
+// catalog drops them. An entry only fills a gap: when the catalog lists the
+// same id, the catalog's definition wins.
+//
+//go:embed models/pinned.json
+var pinnedModelsJSON []byte
+
 type modelStore struct {
 	mu   sync.RWMutex
 	data *staticModelsJSON
@@ -125,6 +132,7 @@ func tryRefreshModels(ctx context.Context, label string) {
 	if len(parsed.Meta) == 0 && oldData != nil && len(oldData.Meta) > 0 {
 		parsed.Meta = oldData.Meta
 	}
+	applyPinnedModels(parsed)
 
 	// Detect changes before updating store.
 	changed := detectChangedProviders(oldData, parsed)
@@ -319,11 +327,44 @@ func loadModelsFromBytes(data []byte, source string) error {
 	if err := validateModelsCatalog(&parsed); err != nil {
 		return fmt.Errorf("%s: validate models catalog: %w", source, err)
 	}
+	applyPinnedModels(&parsed)
 
 	modelsCatalogStore.mu.Lock()
 	modelsCatalogStore.data = &parsed
 	modelsCatalogStore.mu.Unlock()
 	return nil
+}
+
+// applyPinnedModels appends each pinned Claude model whose id the catalog lacks.
+func applyPinnedModels(data *staticModelsJSON) {
+	if data == nil {
+		return
+	}
+	var pinned staticModelsJSON
+	if err := json.Unmarshal(pinnedModelsJSON, &pinned); err != nil {
+		log.Warnf("registry: failed to parse pinned models.json: %v", err)
+		return
+	}
+	data.Claude = appendMissingModels(data.Claude, pinned.Claude)
+}
+
+func appendMissingModels(models, pinned []*ModelInfo) []*ModelInfo {
+	present := make(map[string]struct{}, len(models))
+	for _, model := range models {
+		if model != nil {
+			present[strings.TrimSpace(model.ID)] = struct{}{}
+		}
+	}
+	for _, model := range pinned {
+		if model == nil {
+			continue
+		}
+		if _, ok := present[strings.TrimSpace(model.ID)]; ok {
+			continue
+		}
+		models = append(models, model)
+	}
+	return models
 }
 
 func getModels() *staticModelsJSON {
